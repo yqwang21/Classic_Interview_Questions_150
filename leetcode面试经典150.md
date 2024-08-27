@@ -1687,3 +1687,223 @@ public:
 };
 ```
 
+
+
+## 13 Kadane算法
+
+### 918 环形子数组的最大和
+
+<img src="leetcode面试经典150.assets/image-20240827192701665.png" alt="image-20240827192701665"  />
+
+（思路来自灵茶山艾府）
+
++ 情况一：子数组没有跨越边界
+
+  ![image-20240827193001331](leetcode面试经典150.assets/image-20240827193001331.png)
+
+  这种情况比较常规，计算**最大非空子数组和**即可
+
++ 情况二：子数组跨越边界
+
+  ![image-20240827193032312](leetcode面试经典150.assets/image-20240827193032312.png)
+
+  **逆向**思维：计算**最小子数组和**，然后利用数组和减去最小子数组和即可。但是这种情况**有一种特殊情况**，若最小子数组和等于数组和，这种情况下所求子数组为空，需要舍去这种情况。
+
+```c++
+class Solution {
+public:
+    int maxSubarraySumCircular(vector<int> &nums) {
+        int max_s = INT_MIN; // 最大子数组和，不能为空
+        int min_s = 0;       // 最小子数组和，可以为空
+        int max_f = 0, min_f = 0, sum = 0;
+        for (int x: nums) {
+            // 以 nums[i-1] 结尾的子数组选或不选（取 max）+ x = 以 x 结尾的最大子数组和
+            max_f = max(max_f, 0) + x;
+            max_s = max(max_s, max_f);
+            // 以 nums[i-1] 结尾的子数组选或不选（取 min）+ x = 以 x 结尾的最小子数组和
+            min_f = min(min_f, 0) + x;
+            min_s = min(min_s, min_f);
+            sum += x;
+        }
+        return sum == min_s ? max_s : max(max_s, sum - min_s);
+    }
+};
+```
+
+
+
+## 14 二分查找
+
+### 162 寻找峰值
+
+![image-20240827193852666](leetcode面试经典150.assets/image-20240827193852666.png)
+
+> 暴力解法：直接遍历获得最大值的下标
+
+```c++
+class Solution {
+public:
+    int findPeakElement(vector<int>& nums) {
+        int idx = 0;
+        for(int i = 1; i < nums.size(); i++){
+            if(nums[idx] < nums[i])
+                idx = i;
+        }
+        return idx;
+    }
+};
+```
+
+> 从之间向两边找峰值
+
+```c++
+class Solution {
+public:
+    int findPeakElement(vector<int>& nums) {
+        if(nums.size() == 2){
+            if(nums[0] < nums[1])
+                return 1;
+            else    
+                return 0;
+        }
+        int idx = (nums.size() - 1) >> 1;
+        while(1){
+            if(idx == 0 || idx == nums.size() - 1){
+                return idx;
+            }
+            else{
+                // 找到峰值了
+                if(nums[idx] > nums[idx - 1] && nums[idx] > nums[idx + 1]){
+                    return idx;
+                }
+                // 未找到，往高处走
+                else if(nums[idx] < nums[idx - 1]){
+                    idx--;
+                }
+                else if(nums[idx] < nums[idx + 1]){
+                    idx++;
+                }
+            }
+        }
+        return idx;
+    }
+};
+```
+
+> 二分法，思路比较巧，但不是很好描述
+
+```c++
+class Solution {
+public:
+    int findPeakElement(vector<int>& nums) {
+        if(nums.size() == 1) return 0;
+        int l = 0, r = nums.size() - 2;
+        if(nums[r] < nums[r + 1]) return r + 1;
+        while(l < r){
+            int mid = (l + r) >> 1;
+            if(nums[mid] < nums[mid + 1]) l = mid + 1;
+            else r = mid;
+        }
+        return r;
+    }
+};
+```
+
+
+
+## 15 堆
+
+### 502 IPO
+
+![image-20240827194642135](leetcode面试经典150.assets/image-20240827194642135.png)
+
+![image-20240827194652885](leetcode面试经典150.assets/image-20240827194652885.png)
+
+虽然标记是hard题，但主要还是考察的是对**堆**的数据结构的使用，比较常规。
+
+```c++
+class Solution {
+public:
+    int findMaximizedCapital(int k, int w, vector<int>& profits, vector<int>& capital) {
+        // 将项目根据启动资本从小到大排序
+        vector<pair<int, int>> record; // <capital, profit>
+        for(int i = 0; i < profits.size(); i++) {
+            record.push_back({capital[i], profits[i]});
+        }
+        sort(record.begin(), record.end());
+
+        // 大顶堆，堆顶元素最大
+        priority_queue<int, vector<int>, less<int>> heap;
+        int idx = 0;
+        while(k--) {
+            // 将可以启动的项目的利润入堆
+            while(idx < record.size() && record[idx].first <= w) {
+                heap.push(record[idx].second);
+                idx++;
+            }
+            // 如果还有可以启动的项目，更新当前拥有的资本
+            if(!heap.empty()) {
+                w += heap.top();
+                heap.pop();
+            } else {
+                break;
+            }
+        }
+        return w;
+    }
+};
+```
+
+
+
+### 373 查找和最小的K对数字
+
+![image-20240827195416040](leetcode面试经典150.assets/image-20240827195416040.png)
+
+(思路来自灵茶山艾府)
+
+如果要把 `(i,j)` 入堆，那么之前出堆的下标对是什么？
+
+根据上面的讨论，出堆的下标对只能是 `(i−1,j)` 和` (i,j−1)`。
+
+只要保证 `(i−1,j)` 和 `(i,j−1)` 的其中一个会将 `(i,j)` 入堆，而另一个什么也不做，就不会出现重复了！
+
+不妨规定 `(i,j−1)` 出堆时，将 `(i,j)` 入堆；而 `(i−1,j)` 出堆时只计入答案，其它什么也不做。
+
+换句话说，在` (i,j)` 出堆时，只需将 `(i,j+1)` 入堆，无需将 `(i+1,j)` 入堆。
+
+但若按照该规则，初始仅把 `(0,0)` 入堆的话，只会得到 `(0,1)`,`(0,2)`,⋯ 这些下标对。
+
+所以初始不仅要把 `(0,0)` 入堆，`(1,0)`,`(2,0)`,⋯ 这些都要入堆。
+
+代码实现时，为了方便比较大小，实际入堆的是三元组 `(a[i]+b[j],i,j)`。
+
+```c++
+class Solution {
+public:
+    struct cmp{
+        bool operator() (const tuple<int, int, int>& a, const tuple<int, int, int>& b) {
+            return get<0>(a) > get<0>(b);
+        }
+    };
+    vector<vector<int>> kSmallestPairs(vector<int>& nums1, vector<int>& nums2, int k) {
+        int n = nums1.size(), m = nums2.size();
+        vector<vector<int>> ans;
+        priority_queue<tuple<int, int, int>, vector<tuple<int, int, int>>, cmp> heap; // <和，数字1序号，数字2序号>
+        // 
+        for(int i = 0; i < n; i++) {
+            heap.push({nums1[i] + nums2[0], i, 0});
+        }
+        while(ans.size() < k) {
+            auto [_, i, j] = heap.top();
+            heap.pop();
+            ans.push_back({nums1[i], nums2[j]});
+            if(j + 1 < m) {
+                heap.push({nums1[i] + nums2[j + 1], i, j + 1});
+            }
+        }
+        return ans;
+    }
+};
+```
+
