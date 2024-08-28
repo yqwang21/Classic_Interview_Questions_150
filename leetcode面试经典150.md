@@ -1907,3 +1907,186 @@ public:
 };
 ```
 
+
+
+## 16 位运算
+
+### 67 二进制求和
+
+![image-20240828192749290](leetcode面试经典150.assets/image-20240828192749290.png)
+
+模拟即可
+
+```c++
+class Solution {
+public:
+    string addBinary(string a, string b) {
+        int idxa = a.size() - 1, idxb = b.size() - 1;
+        string ans;
+        int t = 0; // 进位
+        while(idxa >= 0 && idxb >= 0){
+            t += a[idxa--] - '0' + b[idxb--] - '0';
+            switch(t){
+                case 0: ans += '0', t = 0;
+                        break;
+                case 1: ans += '1', t = 0;
+                        break;
+                case 2: ans += '0', t = 1;
+                        break;
+                case 3: ans += '1', t = 1;
+                        break;
+            }
+        }
+        while(idxa >= 0){
+            t += a[idxa--] - '0';
+            switch(t){
+                case 0: ans += '0', t = 0;
+                        break;
+                case 1: ans += '1', t = 0;
+                        break;
+                case 2: ans += '0', t = 1;
+                        break;
+            }
+        }
+        while(idxb >= 0){
+            t += b[idxb--] - '0';
+            switch(t){
+                case 0: ans += '0', t = 0;
+                        break;
+                case 1: ans += '1', t = 0;
+                        break;
+                case 2: ans += '0', t = 1;
+                        break;
+            }
+        }
+        if(t > 0)
+            ans += '1';
+        reverse(ans.begin(), ans.end());
+        return ans;
+    }
+};
+```
+
+
+
+### 190 颠倒二进制位
+
+![image-20240828192948449](leetcode面试经典150.assets/image-20240828192948449.png)
+
+```c++
+class Solution {
+public:
+    uint32_t reverseBits(uint32_t n) {
+        uint32_t ans = 0;
+        for(int i = 0; i < 32 && n > 0; i++) {
+            ans |= (n & 1) << (31 - i);
+            n >>= 1;
+        }
+        return ans;
+    }
+};
+```
+
+
+
+### 191 位1的个数
+
+![image-20240828193120475](leetcode面试经典150.assets/image-20240828193120475.png)
+
+```c++
+class Solution {
+public:
+    int hammingWeight(int n) {
+        int ans = 0;
+        while(n > 0) {
+            if(n & 1 == 1) {
+                ans ++;
+            }
+            n >>= 1;
+        }
+        return ans;
+    }
+};
+```
+
+
+
+### 137 只出现一次的数字II
+
+![image-20240828193632217](leetcode面试经典150.assets/image-20240828193632217.png)
+
+（思路来自灵茶山艾府）
+
+> 暴力思路
+
+设只出现一次的那个数为 `x`。用二进制思考：
+
++ 如果 `x` 的某个比特是 `0`，由于其余数字都出现了 `3` 次，所以 `nums` 的所有元素在这个比特位上的 `1` 的个数是 `3` 的倍数。
++ 如果 `x` 的某个比特是 `1`，由于其余数字都出现了 `3` 次，所以 `nums` 的所有元素在这个比特位上的 `1` 的个数除 `3` 余 `1`。
+
+**统计每个比特位上有多少个`1`**
+
+```c++
+class Solution {
+public:
+    int singleNumber(vector<int> &nums) {
+        int ans = 0;
+        for (int i = 0; i < 32; i++) {
+            int cnt1 = 0;
+            for (int x: nums) {
+                cnt1 += x >> i & 1;
+            }
+            ans |= cnt1 % 3 << i;
+        }
+        return ans;
+    }
+};
+```
+
+> 利用二进制模拟模三加法
+
+模 `3` 加法就是在 `0`,`1`,`2` 之间不断转换，即：
+$$
+0 \rightarrow 1 \rightarrow 2 \rightarrow 0 \rightarrow 1 \rightarrow 2 \rightarrow \cdots
+$$
+
+由于 `0`,`1`,`2` 需要两个比特才能表示，设这两个比特分别为 `a` 和 `b`，即：
+
+`a=0`, `b=0` 表示数字 `0`；
+`a=0`, `b=1` 表示数字 `1`；
+`a=1`, `b=0` 表示数字 `2`。
+那么转换规则就是：
+$$
+(0,0) \rightarrow (0,1) \rightarrow (1,0) \rightarrow (0,0) \rightarrow (0,1) \rightarrow (1,0) \rightarrow \cdots
+$$
+除了两个例外情况：
+
++ 当 `a=0` 且 `b=0` 时，`a` 必须保持不变，仍然为 `0`。
++ 当 `a=1` 时（此时 `b` 一定是 `0`），`b` 必须保持不变，仍然为 `0`。
+
+换句话说，我们可以在异或运算的基础上，增加一些「约束」：
+
++ 当 `(a | b) == 0` 时，把 `0` 赋值给 `a`，否则`（(a | b) == 1）`可以执行异或操作。写成代码就是 `a = (a ^ 1) & (a | b)`。
+
++ 当 `a == 1` 时，把 `0` 赋值给 `b`，否则`（~a == 1）`可以执行异或操作。写成代码就是 `b = (b ^ 1) & ~a`。
+
+其中 `&` 运算相当于为异或运算添加了一个约束：当……为 `1` 时，才执行异或操作。
+
+```c++
+class Solution {
+public:
+    int singleNumber(vector<int> &nums) {
+        int a = 0, b = 0;
+        for (int x: nums) {
+            int tmp_a = a;
+            a = (a ^ x) & (a | b);
+            b = (b ^ x) & ~tmp_a;
+        }
+        return b;
+    }
+};
+```
+
+
+
+
