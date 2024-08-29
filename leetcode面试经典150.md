@@ -2089,4 +2089,349 @@ public:
 
 
 
+### 201 数字范围按位与
+
+![image-20240829192635360](leetcode面试经典150.assets/image-20240829192635360.png)
+
+找`left`和`right`的最长相同前缀，两者相同最长前缀的后一位中`left`肯定为`0`（反证法），且对于按位与，只要有一个为`0`，该位上按位与的结果就为`0`。而对于后续的位，因为是连续自然数，必定有为`0`的数，所以后续位的按位与结果也为`0`。
+
+![image-20240829193105585](leetcode面试经典150.assets/image-20240829193105585.png)
+
+```c++
+class Solution {
+public:
+    int rangeBitwiseAnd(int left, int right) {
+        int mask = 1 << 30;
+        int ans = 0;
+        while(mask > 0 && (right & mask) == (left & mask)) {
+            ans |= right & mask;
+            mask >>= 1;
+        }
+        return ans;
+    }
+};
+```
+
+
+
+## 17 数学
+
+### 9 回文数
+
+![image-20240829193411160](leetcode面试经典150.assets/image-20240829193411160.png)
+
+> 数字转字符串
+
+```c++
+class Solution {
+public:
+    bool isPalindrome(int x) {
+        if(x < 0) return false;
+        if(x == 0) return true;
+        vector<int> nums;
+        while(x){
+            nums.push_back(x % 10);;
+            x = x / 10;
+        }
+        int l = 0, r = nums.size() - 1;
+        while(l < r){
+            if(nums[l] != nums[r]) return false;
+            l++, r--;
+        }
+        return true;
+    }
+};
+```
+
+> 计算原数的倒序数
+
+```c++
+class Solution {
+public:
+    bool isPalindrome(int x) {
+        if(x < 0) return false;
+        if(x == 0) return true;
+        long long reverse = 0;
+        int num = x;
+        while(num) {
+            reverse = (long long) reverse * 10 + num % 10;
+            num /= 10;
+        }
+        return reverse == x;
+    }
+};
+```
+
+注：不用`long long`，部分样例会超范围。
+
+
+
+### 66 加一
+
+![image-20240829193955117](leetcode面试经典150.assets/image-20240829193955117.png)
+
+用数组模拟高精度加法
+
+```c++
+class Solution {
+public:
+    vector<int> plusOne(vector<int>& digits) {
+        digits.back()++;
+        if(digits.back() > 9){
+            int t = 1;
+            digits.back() = 0;
+            int idx = digits.size() - 2;
+            while(t){
+                if(idx < 0){
+                    digits.insert(digits.begin(), t);
+                    t = 0;
+                }
+                else{
+                    int tmp = digits[idx] + t;
+                    digits[idx] = tmp % 10;
+                    t = tmp / 10;
+                    idx--;
+                }
+            }
+        }
+        return digits;
+    }
+};
+```
+
+
+
+### 172 阶乘后的零
+
+![image-20240829194050443](leetcode面试经典150.assets/image-20240829194050443.png)
+
+只有`2`和`5`相乘才会得`0`，所以只要对原数进行因数分解，看有多少个`2`和`5`
+
+```c++
+class Solution {
+public:
+    int trailingZeroes(int n) {
+        int num2 = 0, num5 = 0;
+        for(int i = 2; i <= n; i++){
+            int tmp = i;
+            while(tmp > 0 && (tmp % 5 == 0 || tmp % 2 == 0)){
+                if(tmp > 0 && tmp % 5 == 0){
+                    num5++;
+                    tmp /= 5;
+                }
+                if(tmp > 0 && tmp % 2 == 0){
+                    num2++;
+                    tmp /= 2;
+                }
+            }
+        }
+        return min(num2, num5);
+    }
+};
+```
+
+
+
+### 69 x的平方根
+
+![image-20240829194252228](leetcode面试经典150.assets/image-20240829194252228.png)
+
+二分法查找
+
+```c++
+class Solution {
+public:
+    int mySqrt(int x) {
+        int l = 0, r = x;
+        while(l < r){
+            int mid = ((long long)l + r + 1) >> 1;
+            if((long long)mid * mid <= x) l = mid;
+            else r = mid - 1;
+        }
+        return l;
+    }
+};
+```
+
+
+
+### 50 Pow(x, n)
+
+![image-20240829194432818](leetcode面试经典150.assets/image-20240829194432818.png)
+
+典型的**快速幂**题目
+
+```c++
+class Solution {
+public:
+    double myPow(double x, int n) {
+        // 不用long long做替换会报错
+        // 注意 n=−2^32的情况，取反后 n=2^32超出 int 最大值。可以转成 64 位 int 解决。
+        long long N = n;
+        if(N < 0) {
+            N = -N;
+            x = 1 / x;
+        }
+        
+        double ans = 1.0, tmp = x;
+        while(N) {
+            if(N & 1) {
+                ans *= tmp;
+            }
+            tmp *= tmp;
+            N >>= 1;
+        }
+        return ans;
+    }
+};
+```
+
+
+
+### 149 直线上最多的点数
+
+![image-20240829195407308](leetcode面试经典150.assets/image-20240829195407308.png)
+
+![image-20240829195424927](leetcode面试经典150.assets/image-20240829195424927.png)
+
+根据两点与同一点连线的斜率是否相等，判定这三点是否在一条直线上
+
+```c++
+class Solution {
+public:
+    int maxPoints(vector<vector<int>>& points) {
+        if(points.size() <= 1) return points.size();
+        unordered_map<double, int> slope2num;
+        int res = 0;
+        for(int i = 0; i < points.size(); i++) {
+            int x1 = points[i][0], y1 = points[i][1];
+            for(int j = i + 1; j < points.size(); j++) {
+                int x2 = points[j][0], y2 = points[j][1];
+                int cnt = 2;
+                for(int k = j + 1; k < points.size(); k++) {
+                    int x3 = points[k][0], y3 = points[k][1];
+                    if((y2 - y1) * (x3 - x2) == (y3 - y2) * (x2 - x1)) {
+                        cnt++;
+                    }
+                }
+                res = max(res, cnt);
+            } 
+        }
+        return res;
+    }
+};
+```
+
+
+
+## 多维动态规划
+
+### 120 三角形最小路径和
+
+![image-20240829195630969](leetcode面试经典150.assets/image-20240829195630969.png)
+
+逆向思维
+
+```c++
+class Solution {
+public:
+    int minimumTotal(vector<vector<int>>& triangle) {
+        // 换个方向，从下往上遍历
+        int n = triangle.back().size();
+        vector<vector<int>> dp(n, vector<int>(n, 0));
+
+        for(int i = 0; i < n; i++) {
+            dp.back()[i] = triangle.back()[i];
+        }
+
+        for(int i = n - 2; i >= 0; i--) {
+            for(int j = 0; j <= i; j++) {
+                dp[i][j] = min(dp[i + 1][j], dp[i + 1][j + 1]) + triangle[i][j];
+            }
+        }
+        return dp[0][0];
+    }
+};
+```
+
+
+
+### 97 交错字符串
+
+![image-20240829195820146](leetcode面试经典150.assets/image-20240829195820146.png)
+
+![image-20240829195831171](leetcode面试经典150.assets/image-20240829195831171.png)
+
+转成路径动态规划，从`(0,0)`到`(n,m)`是否有可行路径，**思路很妙**
+
+![image-20240829195947533](leetcode面试经典150.assets/image-20240829195947533.png)
+
+```c++
+class Solution {
+public:
+    bool isInterleave(string s1, string s2, string s3) {
+        int n1 = s1.size(), n2 = s2.size();
+        if(n1 + n2 != s3.size()) return false;
+
+        vector<vector<bool>> dp(n1 + 1, vector<bool>(n2 + 1, false));
+        dp[0][0] = true;
+        for(int i = 1; i <= n2; i++) {
+            dp[0][i] = dp[0][i - 1] && (s2[i - 1] == s3[i - 1]);
+        }
+        for(int i = 1; i <= n1; i++) {
+            dp[i][0] = dp[i - 1][0] && (s1[i - 1] == s3[i - 1]);
+        }
+        for(int i = 1; i <= n1; i++) {
+            for(int j = 1; j <= n2; j++) {
+                dp[i][j] = (dp[i - 1][j] && (s1[i - 1] == s3[i + j - 1])) || (dp[i][j - 1] && (s2[j - 1] == s3[i + j - 1]));
+            }
+        }
+        return dp.back().back();
+    }
+};
+```
+
+
+
+### 221 最大正方形
+
+![image-20240829200121060](leetcode面试经典150.assets/image-20240829200121060.png)
+
+![image-20240829200130290](leetcode面试经典150.assets/image-20240829200130290.png)
+
+`dp[i][j]`表示以`(i,j)`为右下角的最大正方形宽度
+
+```c++
+class Solution {
+public:
+    int maximalSquare(vector<vector<char>>& matrix) {
+        int n = matrix.size(), m = matrix[0].size();
+        vector<vector<int>> dp(n, vector<int>(m, 0));
+        for(int i = 0; i < n; i++) {
+            if(matrix[i][0] == '1') {
+                dp[i][0] = 1;
+            }
+        }
+        for(int i = 0; i < m; i++) {
+            if(matrix[0][i] == '1') {
+                dp[0][i] = 1;
+            }
+        }
+        for(int i = 1; i < n; i++) {
+            for(int j = 1; j < m; j++) {
+                if(matrix[i][j] == '1') {
+                    dp[i][j] = min({dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]}) + 1;
+                }
+            }
+        }
+        int res = 0;
+        for(int i = 0; i < n; i++) {
+            for(int j = 0; j < m; j++) {
+                res = max(res, dp[i][j]);
+            }
+        }
+        return res * res;
+    }
+};
+```
 
